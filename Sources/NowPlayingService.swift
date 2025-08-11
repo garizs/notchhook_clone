@@ -66,7 +66,13 @@ final class NowPlayingService: ObservableObject {
     }
 
     // MARK: - Controls
-    func togglePlayPause() { MRSentCommand(.togglePlayPause) }
+    func togglePlayPause() {
+        if isPlaying {
+            pause()
+        } else {
+            play()
+        }
+    }
     func nextTrack() { MRSentCommand(.nextTrack) }
     func previousTrack() { MRSentCommand(.previousTrack) }
     func play() { MRSentCommand(.play) }
