@@ -38,12 +38,12 @@ final class NowPlayingService: ObservableObject {
     }
 
     func refreshNowPlaying() {
-        MRGetNowPlayingInfo { info in
+        MRBridgeGetNowPlayingInfo { info in
             DispatchQueue.main.async {
                 self.apply(info: info)
             }
         }
-        MRGetIsPlaying { playing in
+        MRBridgeGetIsPlaying { playing in
             DispatchQueue.main.async { self.isPlaying = playing }
         }
     }
