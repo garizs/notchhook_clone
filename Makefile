@@ -1,53 +1,85 @@
-APP_NAME=NotchNookClone
-BUNDLE_ID=dev.local.notchnookclone
-BUILD_DIR=build
-APP_DIR=$(BUILD_DIR)/$(APP_NAME).app
-MACOS_DIR=$(APP_DIR)/Contents/MacOS
-RES_DIR=$(APP_DIR)/Contents/Resources
-CONTENTS=$(APP_DIR)/Contents
+# ---------- Config ----------
+APP_NAME      := NotchNookClone
+BUNDLE_ID     := dev.local.notchnookclone
+MIN_MACOS     := 14.0
 
-SWIFTC=swiftc
-CLANG=clang
+BUILD_DIR     := build
+APP_DIR       := $(BUILD_DIR)/$(APP_NAME).app
+CONTENTS_DIR  := $(APP_DIR)/Contents
+MACOS_DIR     := $(CONTENTS_DIR)/MacOS
+RES_DIR       := $(CONTENTS_DIR)/Resources
 
-SWIFT_SOURCES=$(wildcard Sources/*.swift)
-OBJC_SOURCES=Sources/MediaRemoteBridge.m
-OBJC_OBJECTS=$(BUILD_DIR)/MediaRemoteBridge.o
-BRIDGING_HEADER=Sources/NotchNookClone-Bridging-Header.h
+SWIFTC        := swiftc
+CLANG         := clang
 
-SWIFTFLAGS= -O -g -enable-bare-slash-regex   -import-objc-header $(BRIDGING_HEADER)   -Xlinker -rpath -Xlinker /System/Library/PrivateFrameworks   -framework AppKit -framework Foundation -framework SwiftUI -framework MediaRemote   -target $(shell uname -m)-apple-macosx14.0
+SWIFT_SOURCES := $(wildcard Sources/*.swift)
+OBJC_SOURCES  := Sources/MediaRemoteBridge.m
+OBJC_OBJECTS  := $(BUILD_DIR)/MediaRemoteBridge.o
+BRIDGING_HDR  := Sources/NotchNookClone-Bridging-Header.h
 
-CLANGFLAGS= -fobjc-arc -fmodules -mmacosx-version-min=14.0
+ARCH          := $(shell uname -m)
 
-.PHONY: all build bundle sign run clean zip
+# ---------- Flags ----------
+SWIFTFLAGS := \
+  -O -g \
+  -import-objc-header $(BRIDGING_HDR) \
+  -Xlinker -rpath -Xlinker /System/Library/PrivateFrameworks \
+  -framework AppKit -framework Foundation -framework SwiftUI -framework MediaRemote \
+  -target $(ARCH)-apple-macosx$(MIN_MACOS)
 
+CLANGFLAGS := -fobjc-arc -fmodules -mmacosx-version-min=$(MIN_MACOS)
+
+# ---------- Phony ----------
+.PHONY: all build build-exe bundle sign run clean zip info
+
+# ---------- Default ----------
 all: run
 
+# Создаём build/ заранее
 $(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)
 
+# Компилируем ObjC в .o (создаём build/ если нет)
 $(OBJC_OBJECTS): $(OBJC_SOURCES) | $(BUILD_DIR)
 	$(CLANG) $(CLANGFLAGS) -c $< -o $@
 
-build-exe: $(SWIFT_SOURCES) $(OBJC_OBJECTS)
+# Сборка бинаря Swift + линковка с ObjC
+build-exe: $(SWIFT_SOURCES) $(OBJC_OBJECTS) | $(BUILD_DIR)
 	$(SWIFTC) $(SWIFT_SOURCES) $(OBJC_OBJECTS) $(SWIFTFLAGS) -o $(BUILD_DIR)/$(APP_NAME)
 
+# Упаковка .app
 bundle: build-exe
 	@mkdir -p $(MACOS_DIR) $(RES_DIR)
 	@cp $(BUILD_DIR)/$(APP_NAME) $(MACOS_DIR)/$(APP_NAME)
-	@cp Support/Info.plist $(CONTENTS)/Info.plist
+	@cp Support/Info.plist $(CONTENTS_DIR)/Info.plist
+	@/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $(BUNDLE_ID)" $(CONTENTS_DIR)/Info.plist >/dev/null 2>&1 || true
 
+# Подпись (ad-hoc, Hardened Runtime, entitlements)
 sign: bundle
+	@which codesign >/dev/null 2>&1 || { \
+	  echo "ERROR: codesign не найден. Установи Command Line Tools: xcode-select --install"; exit 1; }
 	codesign -s - --force --options runtime \
 	  --entitlements Support/NotchNookClone.entitlements \
 	  "$(APP_DIR)"
 
+# Полная сборка
 build: sign
 
+# Запуск
 run: build
 	open "$(APP_DIR)"
 
+# Очистка
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf "$(BUILD_DIR)"
 
-zip: clean
-	zip -r notchnook-cli.zip . -x "*/\.*" -x "build/*"
+# Архив исходников (без build/)
+zip:
+	@rm -f notchnook-cli.zip
+	@zip -rq notchnook-cli.zip . -x "build/*" -x ".git/*" -x ".DS_Store" -x ".gitignore"
+
+# Инфо
+info:
+	@echo "Arch:      $(ARCH)"
+	@$(SWIFTC) --version | sed -n '1p'
+	@$(CLANG)  --version | sed -n '1p'
