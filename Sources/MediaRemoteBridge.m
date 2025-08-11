@@ -37,7 +37,7 @@ void MRGetIsPlaying(void (^block)(BOOL)) {
     fn(dispatch_get_main_queue(), ^(Boolean playing){ if (block) block(playing); });
 }
 
-void MRSentCommand(enum MRCommand command) {
+void MRSentCommand(MRCommand command) {
     if (!MRHandle) return;
     Boolean (*fn)(MRCommand, CFDictionaryRef) = dlsym(MRHandle, "MRMediaRemoteSendCommand");
     if (fn) (void)fn(command, NULL);
@@ -57,6 +57,14 @@ static void MRPostCFNotif(CFStringRef name) {
     [[NSNotificationCenter defaultCenter] postNotificationName:n object:nil];
 }
 
+static void _MRNotificationCallback(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    (void)center;
+    (void)observer;
+    (void)object;
+    (void)userInfo;
+    MRPostCFNotif(name);
+}
+
 __attribute__((constructor))
 static void _SetUpCFObservers(void) {
     if (!MRHandle) return;
@@ -64,10 +72,10 @@ static void _SetUpCFObservers(void) {
     if (!center) return;
     extern CFStringRef kMRMediaRemoteNowPlayingInfoDidChangeNotification;
     extern CFStringRef kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification;
-    CFNotificationCenterAddObserver(center, NULL, ^(CFNotificationCenterRef, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo){
-        MRPostCFNotif(name);
-    }, kMRMediaRemoteNowPlayingInfoDidChangeNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-    CFNotificationCenterAddObserver(center, NULL, ^(CFNotificationCenterRef, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo){
-        MRPostCFNotif(name);
-    }, kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    CFNotificationCenterAddObserver(center, NULL, _MRNotificationCallback,
+                                   kMRMediaRemoteNowPlayingInfoDidChangeNotification, NULL,
+                                   CFNotificationSuspensionBehaviorDeliverImmediately);
+    CFNotificationCenterAddObserver(center, NULL, _MRNotificationCallback,
+                                   kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification, NULL,
+                                   CFNotificationSuspensionBehaviorDeliverImmediately);
 }
