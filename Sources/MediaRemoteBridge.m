@@ -47,7 +47,11 @@ void MRSeekToTime(NSTimeInterval seconds) {
     if (!MRHandle) return;
     Boolean (*fn)(MRCommand, CFDictionaryRef) = dlsym(MRHandle, "MRMediaRemoteSendCommand");
     if (!fn) return;
-    extern CFStringRef kMRMediaRemoteOptionPlaybackPosition;
+
+    // Получаем константу динамически
+    CFStringRef kMRMediaRemoteOptionPlaybackPosition = dlsym(MRHandle, "kMRMediaRemoteOptionPlaybackPosition");
+    if (!kMRMediaRemoteOptionPlaybackPosition) return;
+
     NSDictionary *opts = @{ (__bridge NSString*)kMRMediaRemoteOptionPlaybackPosition : @(seconds) };
     (void)fn(MRCommandChangePlaybackPosition, (__bridge CFDictionaryRef)opts);
 }
@@ -70,12 +74,20 @@ static void _SetUpCFObservers(void) {
     if (!MRHandle) return;
     CFNotificationCenterRef center = CFNotificationCenterGetDarwinNotifyCenter();
     if (!center) return;
-    extern CFStringRef kMRMediaRemoteNowPlayingInfoDidChangeNotification;
-    extern CFStringRef kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification;
-    CFNotificationCenterAddObserver(center, NULL, _MRNotificationCallback,
-                                   kMRMediaRemoteNowPlayingInfoDidChangeNotification, NULL,
-                                   CFNotificationSuspensionBehaviorDeliverImmediately);
-    CFNotificationCenterAddObserver(center, NULL, _MRNotificationCallback,
-                                   kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification, NULL,
-                                   CFNotificationSuspensionBehaviorDeliverImmediately);
+
+    // Получаем константы динамически
+    CFStringRef kMRMediaRemoteNowPlayingInfoDidChangeNotification = dlsym(MRHandle, "kMRMediaRemoteNowPlayingInfoDidChangeNotification");
+    CFStringRef kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification = dlsym(MRHandle, "kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification");
+
+    if (kMRMediaRemoteNowPlayingInfoDidChangeNotification) {
+        CFNotificationCenterAddObserver(center, NULL, _MRNotificationCallback,
+                                       kMRMediaRemoteNowPlayingInfoDidChangeNotification, NULL,
+                                       CFNotificationSuspensionBehaviorDeliverImmediately);
+    }
+
+    if (kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification) {
+        CFNotificationCenterAddObserver(center, NULL, _MRNotificationCallback,
+                                       kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification, NULL,
+                                       CFNotificationSuspensionBehaviorDeliverImmediately);
+    }
 }

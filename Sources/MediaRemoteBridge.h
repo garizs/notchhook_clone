@@ -4,18 +4,7 @@
 extern "C" {
 #endif
 
-extern CFStringRef kMRMediaRemoteNowPlayingInfoDidChangeNotification;
-extern CFStringRef kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification;
-
-extern CFStringRef kMRMediaRemoteNowPlayingInfoTitle;
-extern CFStringRef kMRMediaRemoteNowPlayingInfoArtist;
-extern CFStringRef kMRMediaRemoteNowPlayingInfoAlbum;
-extern CFStringRef kMRMediaRemoteNowPlayingInfoArtworkData;
-extern CFStringRef kMRMediaRemoteNowPlayingInfoElapsedTime;
-extern CFStringRef kMRMediaRemoteNowPlayingInfoDuration;
-extern CFStringRef kMRMediaRemoteNowPlayingInfoClientBundleIdentifier;
-
-extern CFStringRef kMRMediaRemoteOptionPlaybackPosition;
+// Константы будут получены динамически через dlsym
 
 typedef NS_ENUM(NSInteger, MRCommand) {
     MRCommandTogglePlayPause = 0,

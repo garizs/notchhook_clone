@@ -24,7 +24,7 @@ SWIFTFLAGS := \
   -O -g \
   -import-objc-header $(BRIDGING_HDR) \
   -Xlinker -rpath -Xlinker /System/Library/PrivateFrameworks \
-  -framework AppKit -framework Foundation -framework SwiftUI -framework MediaRemote \
+  -framework AppKit -framework Foundation -framework SwiftUI \
   -target $(ARCH)-apple-macosx$(MIN_MACOS)
 
 CLANGFLAGS := -fobjc-arc -fmodules -mmacosx-version-min=$(MIN_MACOS)
