@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build (make)",
+      "type": "shell",
+      "command": "Scripts/build.sh",
+      "group": "build"
+    },
+    {
+      "label": "Run",
+      "type": "shell",
+      "command": "Scripts/run.sh",
+      "dependsOn": "Build (make)"
+    },
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "make clean"
+    }
+  ]
+}

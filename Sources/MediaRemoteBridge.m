@@ -1,0 +1,73 @@
+#import "MediaRemoteBridge.h"
+#import <dlfcn.h>
+
+static void *MRHandle;
+
+__attribute__((constructor))
+static void _LoadMR(void) {
+    MRHandle = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_LAZY);
+}
+
+void MRRegisterForNowPlayingNotifications(void) {
+    if (!MRHandle) return;
+    void (*fn)(dispatch_queue_t) = dlsym(MRHandle, "MRMediaRemoteRegisterForNowPlayingNotifications");
+    if (fn) fn(dispatch_get_main_queue());
+}
+
+void MRUnregisterForNowPlayingNotifications(void) {
+    if (!MRHandle) return;
+    void (*fn)(void) = dlsym(MRHandle, "MRMediaRemoteUnregisterForNowPlayingNotifications");
+    if (fn) fn();
+}
+
+void MRGetNowPlayingInfo(void (^block)(NSDictionary *)) {
+    if (!MRHandle) { if (block) block(@{}); return; }
+    void (*fn)(dispatch_queue_t, void (^)(CFDictionaryRef)) = dlsym(MRHandle, "MRMediaRemoteGetNowPlayingInfo");
+    if (!fn) { if (block) block(@{}); return; }
+    fn(dispatch_get_main_queue(), ^(CFDictionaryRef info){
+        NSDictionary *dict = (__bridge NSDictionary *)info;
+        if (block) block(dict ?: @{});
+    });
+}
+
+void MRGetIsPlaying(void (^block)(BOOL)) {
+    if (!MRHandle) { if (block) block(NO); return; }
+    void (*fn)(dispatch_queue_t, void (^block)(Boolean)) = dlsym(MRHandle, "MRMediaRemoteGetNowPlayingApplicationIsPlaying");
+    if (!fn) { if (block) block(NO); return; }
+    fn(dispatch_get_main_queue(), ^(Boolean playing){ if (block) block(playing); });
+}
+
+void MRSentCommand(enum MRCommand command) {
+    if (!MRHandle) return;
+    Boolean (*fn)(MRCommand, CFDictionaryRef) = dlsym(MRHandle, "MRMediaRemoteSendCommand");
+    if (fn) (void)fn(command, NULL);
+}
+
+void MRSeekToTime(NSTimeInterval seconds) {
+    if (!MRHandle) return;
+    Boolean (*fn)(MRCommand, CFDictionaryRef) = dlsym(MRHandle, "MRMediaRemoteSendCommand");
+    if (!fn) return;
+    extern CFStringRef kMRMediaRemoteOptionPlaybackPosition;
+    NSDictionary *opts = @{ (__bridge NSString*)kMRMediaRemoteOptionPlaybackPosition : @(seconds) };
+    (void)fn(MRCommandChangePlaybackPosition, (__bridge CFDictionaryRef)opts);
+}
+
+static void MRPostCFNotif(CFStringRef name) {
+    NSString *n = (__bridge NSString *)name;
+    [[NSNotificationCenter defaultCenter] postNotificationName:n object:nil];
+}
+
+__attribute__((constructor))
+static void _SetUpCFObservers(void) {
+    if (!MRHandle) return;
+    CFNotificationCenterRef center = CFNotificationCenterGetDarwinNotifyCenter();
+    if (!center) return;
+    extern CFStringRef kMRMediaRemoteNowPlayingInfoDidChangeNotification;
+    extern CFStringRef kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification;
+    CFNotificationCenterAddObserver(center, NULL, ^(CFNotificationCenterRef, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo){
+        MRPostCFNotif(name);
+    }, kMRMediaRemoteNowPlayingInfoDidChangeNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    CFNotificationCenterAddObserver(center, NULL, ^(CFNotificationCenterRef, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo){
+        MRPostCFNotif(name);
+    }, kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+}

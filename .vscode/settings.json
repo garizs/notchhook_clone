@@ -1,0 +1,9 @@
+{
+  "files.associations": {
+    "*.m": "objective-c",
+    "*.mm": "objective-cpp",
+    "*.h": "objective-c"
+  },
+  "editor.formatOnSave": true,
+  "problems.decorations.enabled": true
+}
