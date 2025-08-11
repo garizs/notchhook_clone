@@ -3,7 +3,7 @@ APP_NAME      := NotchNookClone
 BUNDLE_ID     := dev.local.notchnookclone
 MIN_MACOS     := 14.0
 
-BUILD_DIR     := build
+BUILD_DIR     := build_$(APP_NAME)
 APP_DIR       := $(BUILD_DIR)/$(APP_NAME).app
 CONTENTS_DIR  := $(APP_DIR)/Contents
 MACOS_DIR     := $(CONTENTS_DIR)/MacOS
