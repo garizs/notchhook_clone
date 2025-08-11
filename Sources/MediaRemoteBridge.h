@@ -41,5 +41,5 @@ FOUNDATION_EXPORT void MRRegisterForNowPlayingNotifications(void);
 FOUNDATION_EXPORT void MRUnregisterForNowPlayingNotifications(void);
 FOUNDATION_EXPORT void MRGetNowPlayingInfo(void (^block)(NSDictionary *info));
 FOUNDATION_EXPORT void MRGetIsPlaying(void (^block)(BOOL playing));
-FOUNDATION_EXPORT void MRSentCommand(enum MRCommand command);
+FOUNDATION_EXPORT void MRSentCommand(MRCommand command);
 FOUNDATION_EXPORT void MRSeekToTime(NSTimeInterval seconds);
